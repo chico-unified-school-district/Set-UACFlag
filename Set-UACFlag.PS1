@@ -1,11 +1,15 @@
 <# 
 .SYNOPSIS			
- Bradford requires a specific AD User Account Control flag be chosen to determine if an account has access
- to various CUSD network services. We chose to set the User Account Control flag to 0x0202 for disabled 
- AD accounts. A Powershell script is used to search AD for qualifying user objects and set the flag.
+ Bradford requires a specific AD User Account Control flag be set to determine if an account has access
+ to various CUSD network services. The User Account Control flag for disable dobjects is 0x0202. 
+ A Powershell script is used to search AD for qualifying disabled user objects and set the flag.
  This process runs every 30 minutes as a scheduled task.
 .DESCRIPTION
+ A PSSession is created with an account with access to a domain controller and write/change permisssions on user objects.
 .EXAMPLE
+.\Set-UACFlag.PS1 -DomainController 'myDC' -ADCredential $CredentialObject
+.EXAMPLE
+.\Set-UACFlag.PS1 -DomainController 'myDC' -ADCredential $CredentialObject -WhatIf -Verbose
 .INPUTS
 .OUTPUTS
 .NOTES
@@ -13,45 +17,49 @@
 
 [cmdletbinding()]
 param ( 
- [Parameter(Mandatory=$True)]
- [Alias('DC','Server')]
- [ValidateScript({Test-Connection -ComputerName $_ -Quiet -Count 1})]
+ [Parameter(Mandatory = $True)]
+ [Alias('DC')]
+ [ValidateScript( { Test-Connection -ComputerName $_ -Quiet -Count 1 })]
  [string]$DomainController,
  # PSSession to Domain Controller and Use Active Directory CMDLETS  
- [Parameter(Mandatory=$True)]
- [Alias('ADCred')]
+ [Parameter(Mandatory = $True)]
  [System.Management.Automation.PSCredential]$ADCredential,
  [SWITCH]$WhatIf 
- )
+)
 
-CLS;$error.clear() # Clear Screen and $error
-Get-PSSession | Remove-PSSession
+Clear-Host; $error.clear() # Clear Screen and $error
+Get-PSSession | Remove-PSSession -WhatIf:$false
+
+. .\lib\Add-Log.ps1
 
 # AD Domain Controller Session
-$adCmdLets = 'Get-ADUser','Set-ADUser'
+$adCmdLets = 'Get-ADUser', 'Set-ADUser'
 $adSession = New-PSSession -ComputerName $DomainController -Credential $ADCredential
-Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber
-
-"`nBradford requires a specific AD User Account Control flag be chosen to determine if an account has access
-to various CUSD network services.`n
-We chose to set the User Account Control flag to 0x0202 for disabled AD accounts.`n
-This Powershell script is used to search AD for qualifying user objects and set the flag."
+Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber > $null
 
 # Processing
-"`nRunning every 30 minutes until $(Get-Date "11:30pm" -f hh:mmp)"
+$waitTime = 120 # Minutes
+$endTime = '11:30pm'
+"Running every $waitTime minutes until $(Get-Date $endTime -f hh:mmp)"
 do {
  $users = $null
- $users = Get-ADUser -Filter {(enabled -eq $false) -and 
-                     (employeeID -like "*") -and 
-                     (homepage -like "*@chicousd.net") -and
-                     (userAccountControl -ne 514)}
- if ($users){
-  "Setting UserAccountControl flag to 514 (0x0202) for`: "
-  $users.samAccountName
-  $users | %{$samid=$_.SamAccountName;Set-ADUser $samid -Replace @{UserAccountControl=0x0202} -WhatIf:$WhatIf}
+ Write-Verbose 'Getting qualifying AD Users'
+ $users = Get-ADUser -Filter { (enabled -eq $false) -and 
+  (employeeID -like "*") -and 
+  (homepage -like "*@*") -and
+  (userAccountControl -ne 514) }
+ if ($users) {
+  foreach ($obj in $users) {
+   # 0x200 (512) is the value for active acocunts
+   Add-log update ('{0},UserAccountControl = 514 (0x0202)' -f $obj.samAccountName) $WhatIf
+   Set-ADUser -Identity $obj.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf 
+  }
  }
- Start-Sleep 1800 # 30 minute wait cycle
-} until ( (Get-Date) -ge (Get-Date "11:30pm") )
+ if (!$WhatIf) {
+  Write-Verbose ('Sleeping for {0} minutes...' -f $waitTime)
+  Start-Sleep ($waitTime * 60)
+ }
+} until ( $WhatIf -or ((Get-Date) -ge (Get-Date $endTime)) )
                     
 Write-Verbose "Tearing down sessions"
-Get-PSSession | Remove-PSSession
+Get-PSSession | Remove-PSSession -WhatIf:$false
