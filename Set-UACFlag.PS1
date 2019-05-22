@@ -40,7 +40,7 @@ Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmd
 # Processing
 $waitTime = 60 # Minutes
 $endTime = '11:00pm'
-"Running every $waitTime minutes until $(Get-Date $endTime -f HH:mm)"
+Add-Log script ("Running every $waitTime minutes until $(Get-Date $endTime -f HH:mm)") $WhatIf
 do {
  $users = $null
  Write-Verbose 'Getting qualifying AD Users'
