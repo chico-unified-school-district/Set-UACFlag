@@ -38,9 +38,9 @@ $adSession = New-PSSession -ComputerName $DomainController -Credential $ADCreden
 Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber > $null
 
 # Processing
-$waitTime = 120 # Minutes
-$endTime = '11:30pm'
-"Running every $waitTime minutes until $(Get-Date $endTime -f hh:mmp)"
+$waitTime = 60 # Minutes
+$endTime = '11:00pm'
+"Running every $waitTime minutes until $(Get-Date $endTime -f HH:mm)"
 do {
  $users = $null
  Write-Verbose 'Getting qualifying AD Users'
