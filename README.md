@@ -1,7 +1,7 @@
 # Set-UACFlag
 Sets the 'userAccountControl' flag for disabled Active Directory user objects.
 
-Bradford requires a specific AD User Account Control flag be set to determine if an account has access
+Bradford requires a specific Active Directory User Account Control flag be set to determine if an account has access
 to various CUSD network services. 
 
 The User Account Control flag for disabled dobjects is 0x0202. 
