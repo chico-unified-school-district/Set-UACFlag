@@ -1,7 +1,7 @@
-<# 
-.SYNOPSIS			
+<#
+.SYNOPSIS
  Bradford requires a specific AD User Account Control flag be set to determine if an account has access
- to various CUSD network services. The User Account Control flag for disable dobjects is 0x0202. 
+ to various CUSD network services. The User Account Control flag for disable dobjects is 0x0202.
  A Powershell script is used to search AD for qualifying disabled user objects and set the flag.
  This process runs every 30 minutes as a scheduled task.
 .DESCRIPTION
@@ -16,26 +16,28 @@
 #>
 
 [cmdletbinding()]
-param ( 
+param (
  [Parameter(Mandatory = $True)]
- [Alias('DC')]
- [ValidateScript( { Test-Connection -ComputerName $_ -Quiet -Count 1 })]
- [string]$DomainController,
- # PSSession to Domain Controller and Use Active Directory CMDLETS  
+ [Alias('DCs')]
+ [string[]]$DomainControllers,
+ # PSSession to Domain Controller and Use Active Directory CMDLETS
  [Parameter(Mandatory = $True)]
  [System.Management.Automation.PSCredential]$ADCredential,
- [SWITCH]$WhatIf 
+ [SWITCH]$WhatIf
 )
 
 Clear-Host; $error.clear() # Clear Screen and $error
 Get-PSSession | Remove-PSSession -WhatIf:$false
 
 . .\lib\Add-Log.ps1
+. .\lib\New-ADSession.ps1
+. .\lib\Select-DomainController.ps1
+. .\lib\Show-TestRun.ps1
 
 # AD Domain Controller Session
 $adCmdLets = 'Get-ADUser', 'Set-ADUser'
-$adSession = New-PSSession -ComputerName $DomainController -Credential $ADCredential
-Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber > $null
+$dc = Select-DomainController $DomainControllers
+New-ADSession $dc $adCmdLets $ADCredential
 
 # Processing
 $waitTime = 60 # Minutes
@@ -44,15 +46,15 @@ Add-Log script ("Running every $waitTime minutes until $(Get-Date $endTime -f HH
 do {
  $users = $null
  Write-Verbose 'Getting qualifying AD Users'
- $users = Get-ADUser -Filter { (enabled -eq $false) -and 
-  (employeeID -like "*") -and 
+ $users = Get-ADUser -Filter { (enabled -eq $false) -and
+  (employeeID -like "*") -and
   (homepage -like "*@*") -and
   (userAccountControl -ne 514) }
  if ($users) {
   foreach ($obj in $users) {
    # 0x200 (512) is the value for active acocunts
    Add-log update ('{0},UserAccountControl = 514 (0x0202)' -f $obj.samAccountName) $WhatIf
-   Set-ADUser -Identity $obj.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf 
+   Set-ADUser -Identity $obj.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf
   }
  }
  if (!$WhatIf) {
@@ -60,6 +62,6 @@ do {
   Start-Sleep ($waitTime * 60)
  }
 } until ( $WhatIf -or ((Get-Date) -ge (Get-Date $endTime)) )
-                    
+
 Write-Verbose "Tearing down sessions"
 Get-PSSession | Remove-PSSession -WhatIf:$false
