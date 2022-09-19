@@ -45,7 +45,7 @@ $endTime = '11:00pm'
 Add-Log script ("Running every $waitTime minutes until $(Get-Date $endTime -f HH:mm)") $WhatIf
 do {
  $users = $null
- Write-Verbose 'Getting qualifying AD Users'
+ Write-Verbose 'Getting qualifying disabled AD User objects'
  $users = Get-ADUser -Filter { (enabled -eq $false) -and
   (employeeID -like "*") -and
   (homepage -like "*@*") -and
@@ -53,6 +53,7 @@ do {
  if ($users) {
   foreach ($obj in $users) {
    # 0x200 (512) is the value for active acocunts
+   # 0x0202 for inactive/disabled
    Add-log update ('{0},UserAccountControl = 514 (0x0202)' -f $obj.samAccountName) $WhatIf
    Set-ADUser -Identity $obj.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf
   }
