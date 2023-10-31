@@ -20,7 +20,7 @@ param (
  [Parameter(Mandatory = $True)]
  [Alias('DCs')]
  [string[]]$DomainControllers,
- # PSSession to Domain Controller and Use Active Directory CMDLETS
+ # PSSession to Domain Controller and Use Active Directory CMDLEbTS
  [Parameter(Mandatory = $True)]
  [System.Management.Automation.PSCredential]$ADCredential,
  [SWITCH]$WhatIf
