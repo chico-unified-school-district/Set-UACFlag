@@ -26,10 +26,8 @@ param (
  [SWITCH]$WhatIf
 )
 
-Clear-Host; $error.clear() # Clear Screen and $error
-Get-PSSession | Remove-PSSession -WhatIf:$false
-
 . .\lib\Add-Log.ps1
+. .\lib\Clear-SessionData.ps1
 . .\lib\New-ADSession.ps1
 . .\lib\Select-DomainController.ps1
 . .\lib\Show-TestRun.ps1
@@ -64,5 +62,5 @@ do {
  }
 } until ( $WhatIf -or ((Get-Date) -ge (Get-Date $endTime)) )
 
-Write-Verbose "Tearing down sessions"
-Get-PSSession | Remove-PSSession -WhatIf:$false
+Clear-SessionData
+Show-TestRun
