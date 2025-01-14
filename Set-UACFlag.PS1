@@ -26,22 +26,28 @@ param (
  [SWITCH]$WhatIf
 )
 
-. .\lib\Add-Log.ps1
+# . .\lib\Add-Log.ps1
 . .\lib\Clear-SessionData.ps1
 . .\lib\New-ADSession.ps1
 . .\lib\Select-DomainController.ps1
 . .\lib\Show-TestRun.ps1
 
-# AD Domain Controller Session
-$adCmdLets = 'Get-ADUser', 'Set-ADUser'
-$dc = Select-DomainController $DomainControllers
-New-ADSession $dc $adCmdLets $ADCredential
+# # AD Domain Controller Session
+# $adCmdLets = 'Get-ADUser', 'Set-ADUser'
+# $dc = Select-DomainController $DomainControllers
+# New-ADSession $dc $adCmdLets $ADCredential
 
 # Processing
 $waitTime = 60 # Minutes
 $endTime = '11:00pm'
-Add-Log script ("Running every $waitTime minutes until $(Get-Date $endTime -f HH:mm)") $WhatIf
+'Running every $waitTime minutes until {0}' -f $(Get-Date $endTime -f HH:mm)
 do {
+
+ # AD Domain Controller Session
+ $adCmdLets = 'Get-ADUser', 'Set-ADUser'
+ $dc = Select-DomainController $DomainControllers
+ New-ADSession $dc $adCmdLets $ADCredential
+
  $users = $null
  Write-Verbose 'Getting qualifying disabled AD User objects'
  $users = Get-ADUser -Filter { (enabled -eq $false) -and
@@ -52,15 +58,17 @@ do {
   foreach ($obj in $users) {
    # 0x200 (512) is the value for active acocunts
    # 0x0202 for inactive/disabled
-   Add-log update ('{0},UserAccountControl = 514 (0x0202)' -f $obj.samAccountName) $WhatIf
+   Write-Host ('{0},{1},UserAccountControl = 514 (0x0202)' -f $MyInvocation.MyCommand.Name, $obj.samAccountName)
    Set-ADUser -Identity $obj.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf
   }
  }
+
+ Clear-SessionData
+
  if (!$WhatIf) {
-  Write-Verbose ('Sleeping for {0} minutes...' -f $waitTime)
+  Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes(($waitTim)) )
   Start-Sleep ($waitTime * 60)
  }
 } until ( $WhatIf -or ((Get-Date) -ge (Get-Date $endTime)) )
 
-Clear-SessionData
 Show-TestRun
