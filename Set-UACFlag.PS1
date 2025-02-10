@@ -26,7 +26,22 @@ param (
  [SWITCH]$WhatIf
 )
 
-Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'New-ADSession', 'Select-DomainController', 'Show-TestRun'
+# Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'New-ADSession', 'Select-DomainController', 'Show-TestRun'
+Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'Select-DomainController', 'Show-TestRun'
+
+function New-ADSession ($dc, $cmdlets, $myUser) {
+ $msgVars = $MyInvocation.MyCommand.Name, $dc, ($cmdLets -join ',')
+ Write-Verbose ('{0},{1}' -f $msgVars)
+ $adSession = New-PSSession -ComputerName $dc -Credential $myUser
+ $sessionParams = @{
+  Session      = $adSession
+  Module       = 'ActiveDirectory'
+  CommandName  = $cmdLets
+  AllowClobber = $true
+  ErrorAction  = 'SilentlyContinue'
+ }
+ Import-PSSession @sessionParams | Out-Null
+}
 
 # Processing
 $waitTime = 60 # Minutes
