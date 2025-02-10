@@ -20,32 +20,23 @@ param (
  [Parameter(Mandatory = $True)]
  [Alias('DCs')]
  [string[]]$DomainControllers,
- # PSSession to Domain Controller and Use Active Directory CMDLEbTS
+ # PSSession to Domain Controller and Use Active Directory cmdlets
  [Parameter(Mandatory = $True)]
  [System.Management.Automation.PSCredential]$ADCredential,
  [SWITCH]$WhatIf
 )
 
-# . .\lib\Add-Log.ps1
-. .\lib\Clear-SessionData.ps1
-. .\lib\New-ADSession.ps1
-. .\lib\Select-DomainController.ps1
-. .\lib\Show-TestRun.ps1
-
-# # AD Domain Controller Session
-# $adCmdLets = 'Get-ADUser', 'Set-ADUser'
-# $dc = Select-DomainController $DomainControllers
-# New-ADSession $dc $adCmdLets $ADCredential
+Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'New-ADSession', 'Select-DomainController', 'Show-TestRun'
 
 # Processing
 $waitTime = 60 # Minutes
 $endTime = '11:00pm'
 'Running every $waitTime minutes until {0}' -f $(Get-Date $endTime -f HH:mm)
 do {
-
- # AD Domain Controller Session
- $adCmdLets = 'Get-ADUser', 'Set-ADUser'
  $dc = Select-DomainController $DomainControllers
+ $adCmdLets = 'Get-ADUser', 'Set-ADUser'
+ $msgVars = $MyInvocation.MyCommand.Name, $dc, ($adCmdLets -join ',')
+ Write-Verbose ('{0},{1},{2}' -f $msgVars)
  New-ADSession $dc $adCmdLets $ADCredential
 
  $users = $null
