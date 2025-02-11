@@ -25,9 +25,8 @@ param (
  [System.Management.Automation.PSCredential]$ADCredential,
  [SWITCH]$WhatIf
 )
-
-Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'New-ADSession', 'Select-DomainController', 'Show-TestRun'
-# Import-Module -Name CommonScriptFunctions -Cmdlet 'Clear-SessionData', 'Select-DomainController', 'Show-TestRun'
+$moduleCmds = 'Clear-SessionData', 'New-ADSession', 'Select-DomainController', 'Show-TestRun'
+Import-Module -Name CommonScriptFunctions -Cmdlet $moduleCmds -Global
 
 # function New-ADSession ($dc, $cmdlets, $myUser) {
 #  $msgVars = $MyInvocation.MyCommand.Name, $dc, ($cmdLets -join ',')
