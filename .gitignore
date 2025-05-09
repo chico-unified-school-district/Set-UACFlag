@@ -8,3 +8,4 @@ logs/*
 *desktop.ini
 dekstop.ini
 /Jenkins.ps1
+/params.ps1
