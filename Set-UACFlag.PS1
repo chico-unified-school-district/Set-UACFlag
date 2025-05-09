@@ -30,10 +30,10 @@ param (
 
 function Get-ADData {
  process {
-  $users = Get-ADUser -Filter { (enabled -eq $false) -and
- (employeeID -like "*") -and
- (homepage -like "*@*") -and
- (userAccountControl -ne 514) }
+  $params = @{
+   Filter = "Enabled -eq 'False' -and EmployeeId -like '*' -and HomePage -like '*@*' -and userAccountControl -ne 514"
+  }
+  $users = Get-ADUser @params
   if (!$users) { return }
   $users
  }
