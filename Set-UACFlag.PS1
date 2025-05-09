@@ -58,7 +58,7 @@ do {
  Get-ADData | Set-UserUACFlag
  Clear-SessionData
  if (!$WhatIf) {
-  Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes(($waitTim)) )
+  Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes((60)) )
   Start-Sleep (60 * 60)
  }
 } until ( $WhatIf -or ((Get-Date) -ge (Get-Date '11:00pm')) )
