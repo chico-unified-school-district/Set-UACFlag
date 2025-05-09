@@ -54,12 +54,9 @@ Show-BlockInfo main
 $adCmdLets = 'Get-ADUser', 'Set-ADUser'
 'Running every 60 minutes until {0}' -f $(Get-Date '11:00pm')
 do {
- $adData = Get-ADData
- if ($adData) {
-  Connect-ADSession $DomainControllers $ADCredential $adCmdLets
-  $adData | Set-UserUACFlag
-  Clear-SessionData
- }
+ Connect-ADSession $DomainControllers $ADCredential $adCmdLets
+ Get-ADData | Set-UserUACFlag
+ Clear-SessionData
  if (!$WhatIf) {
   Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes(($waitTim)) )
   Start-Sleep (60 * 60)
