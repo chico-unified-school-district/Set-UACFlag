@@ -52,9 +52,7 @@ Import-Module -Name CommonScriptFunctions
 if ($WhatIf) { Show-TestRun }
 Show-BlockInfo main
 $adCmdLets = 'Get-ADUser', 'Set-ADUser'
-$waitTime = 60 # Minutes
-$endTime = '11:00pm'
-'Running every $waitTime minutes until {0}' -f $(Get-Date $endTime -f HH:mm)
+'Running every 60 minutes until {0}' -f $(Get-Date '11:00pm')
 do {
  $adData = Get-ADData
  if ($adData) {
@@ -64,7 +62,7 @@ do {
  }
  if (!$WhatIf) {
   Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes(($waitTim)) )
-  Start-Sleep ($waitTime * 60)
+  Start-Sleep (60 * 60)
  }
-} until ( $WhatIf -or ((Get-Date) -ge (Get-Date $endTime)) )
+} until ( $WhatIf -or ((Get-Date) -ge (Get-Date '11:00pm')) )
 if ($WhatIf) { Show-TestRun }
