@@ -17,21 +17,20 @@
 
 [cmdletbinding()]
 param (
- [Parameter(Mandatory = $True)]
- [Alias('DCs')]
- [string[]]$DomainControllers,
- # PSSession to Domain Controller and Use Active Directory cmdlets
- [Parameter(Mandatory = $True)]
- [System.Management.Automation.PSCredential]$ADCredential,
- [Alias('wi')]
- [SWITCH]$WhatIf
+ [Parameter(Mandatory = $True)][Alias('DCs')][string[]]$DomainControllers,
+ [Parameter(Mandatory = $True)][System.Management.Automation.PSCredential]$ADCredential,
+ [string]$StudentSearchBase,
+ [string]$StaffSearchBase,
+ [Alias('wi')][SWITCH]$WhatIf
 )
 
 
-function Get-ADData {
+function Get-ADData ($ou) {
  process {
   $params = @{
-   Filter = "Enabled -eq 'False' -and EmployeeId -like '*' -and HomePage -like '*@*' -and userAccountControl -ne 514"
+   Filter     = "EmployeeId -like '*' -and HomePage -like '*@*'"
+   SearchBase = $ou
+   Properties = 'employeeType', 'EmployeeId', 'userAccountControl'
   }
   $users = Get-ADUser @params
   if (!$users) { return }
@@ -40,22 +39,33 @@ function Get-ADData {
 }
 
 function Set-UserUACFlag {
+ begin {
+  $activeStaff = 512 #      (This should be “Normal Account”)
+  $disabledStaff = 514 #    (This should be “Normal Account, Disabled”)
+  $activeStudent = 544 #    (This should be “Password Not Required, Normal Account”)
+  $disabledStudent = 546  # (This should be “Password Not Required, Normal Account)
+ }
  process {
-  # 0x200 (512) is the value for active acocunts
-  # 0x0202 for inactive/disabled
-  Write-Host ('{0},{1},UserAccountControl = 514 (0x0202)' -f $MyInvocation.MyCommand.Name, $_.SamAccountName) -F Magenta
-  Set-ADUser -Identity $_.ObjectGUID -Replace @{UserAccountControl = 0x0202 } -WhatIf:$WhatIf
+  $uacFlag = if ($_.employeeType -eq 'student' -and $_.Enabled -eq $true) { $activeStudent }
+  elseif ($_.employeeType -eq 'student' -and $_.Enabled -eq $false) { $disabledStudent }
+  elseif ($_.employeeType -ne 'student' -and $_.Enabled -eq $true) { $activeStaff }
+  else { $disabledStaff }
+  if ($_.userAccountControl -eq $uacFlag) { return }
+  Write-Host ('{0},{1},Enabled:{2},Old:{3},New:{4}' -f $MyInvocation.MyCommand.Name, $_.SamAccountName, $_.Enabled, $_.userAccountControl, $uacFlag) -F Cyan
+  Set-ADUser -Identity $_.ObjectGUID -Replace @{UserAccountControl = $uacFlag } -WhatIf:$WhatIf
  }
 }
 
 Import-Module -Name CommonScriptFunctions
+
 if ($WhatIf) { Show-TestRun }
 Show-BlockInfo main
 $adCmdLets = 'Get-ADUser', 'Set-ADUser'
 'Running every 60 minutes until {0}' -f $(Get-Date '6:00pm')
 do {
  Connect-ADSession $DomainControllers $ADCredential $adCmdLets
- Get-ADData | Set-UserUACFlag
+ Get-ADData $StaffSearchBase | Set-UserUACFlag
+ Get-ADData $StudentSearchBase | Set-UserUACFlag
  Clear-SessionData
  if (!$WhatIf) {
   Write-Host ( 'Next run time {0}' -f (Get-Date).AddMinutes((60)) )
