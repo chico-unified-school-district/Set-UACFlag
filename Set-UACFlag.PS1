@@ -24,11 +24,14 @@ param (
 function Get-ADData ([pscredential]$cred) {
  process {
   $filter = "EmployeeId -like '*' -and
-  HomePage -like '*@*' -and
-  -not(Title -like '*Generic*') -and
-  -not(Title -like '*Service*') -and
-  -not(Description -like '*Test*')
+  HomePage -like '*@*'
   "
+  # $filter = "EmployeeId -like '*' -and
+  # HomePage -like '*@*' -and
+  # -not(Title -like '*Generic*') -and
+  # -not(Title -like '*Service*') -and
+  # -not(Description -like '*Test*')
+  # "
   $params = @{
    Filter     = $filter
    Properties = 'employeeType', 'EmployeeId', 'userAccountControl'
@@ -54,7 +57,7 @@ function Set-UserUACFlag ([pscredential]$cred) {
   else { $disabledStaff }
   if ($_.userAccountControl -eq $uacFlag) { return }
   $msg = $MyInvocation.MyCommand.Name, $_.SamAccountName, $_.employeeType, $_.Enabled, $_.userAccountControl, $uacFlag
-  Write-Host ('{0},{1},type:{2},Enabled:{3},Old:{4},New:{5}' -f $msg) -F Cyan
+  Write-Host ('{0},{1},Type:{2},Enabled:{3},Old:{4},New:{5}' -f $msg) -F Cyan
   $params = @{
    Identity   = $_.ObjectGUID
    Replace    = @{ UserAccountControl = $uacFlag }
