@@ -66,7 +66,7 @@ function Set-UserUACFlag ([pscredential]$cred) {
 }
 
 Import-Module -Name CommonScriptFunctions
-Import-Module -Name ActiveDirectory -Cmdlet Get-ADUser, Set-ADUser -ErrorAction Stop
+# Import-Module -Name ActiveDirectory -Cmdlet Get-ADUser, Set-ADUser -ErrorAction Stop
 
 if ($WhatIf) { Show-TestRun }
 
